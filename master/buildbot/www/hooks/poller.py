@@ -17,37 +17,39 @@
 # the door" and trigger a change source to poll.
 
 from buildbot.changes.base import PollingChangeSource
+from buildbot.www.hooks import ChangeHook
 
 
-def getChanges(req, options=None):
-    change_svc = req.site.master.change_svc
-    poll_all = "poller" not in req.args
+class PollerChangeHook(ChangeHook):
+    def getChanges(self, req):
+        change_svc = req.site.master.change_svc
+        poll_all = "poller" not in req.args
 
-    allow_all = True
-    allowed = []
-    if isinstance(options, dict) and "allowed" in options:
-        allow_all = False
-        allowed = options["allowed"]
+        allow_all = True
+        allowed = []
+        if isinstance(self.options, dict) and "allowed" in self.options:
+            allow_all = False
+            allowed = self.options["allowed"]
 
-    pollers = []
+        pollers = []
 
-    for source in change_svc:
-        if not isinstance(source, PollingChangeSource):
-            continue
-        if not hasattr(source, "name"):
-            continue
-        if not poll_all and source.name not in req.args['poller']:
-            continue
-        if not allow_all and source.name not in allowed:
-            continue
-        pollers.append(source)
+        for source in change_svc:
+            if not isinstance(source, PollingChangeSource):
+                continue
+            if not hasattr(source, "name"):
+                continue
+            if not poll_all and source.name not in req.args['poller']:
+                continue
+            if not allow_all and source.name not in allowed:
+                continue
+            pollers.append(source)
 
-    if not poll_all:
-        missing = set(req.args['poller']) - set(s.name for s in pollers)
-        if missing:
-            raise ValueError("Could not find pollers: %s" % ",".join(missing))
+        if not poll_all:
+            missing = set(req.args['poller']) - set(s.name for s in pollers)
+            if missing:
+                raise ValueError("Could not find pollers: %s" % ",".join(missing))
 
-    for p in pollers:
-        p.force()
+        for p in pollers:
+            p.force()
 
-    return [], None
+        return [], None

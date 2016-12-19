@@ -21,6 +21,9 @@ from dateutil.parser import parse as dateparse
 
 from twisted.python import log
 
+from buildbot.www.hooks import ChangeHook
+
+
 try:
     import json
     assert json
@@ -206,20 +209,20 @@ class GitHubEventHandler(object):
         return changes
 
 
-def getChanges(request, options=None):
-    """
-    Responds only to POST events and starts the build process
+class GitHubChangeHook(ChangeHook):
 
-    :arguments:
-        request
-            the http request object
-    """
-    if options is None:
-        options = {}
+    def getChanges(self, request):
+        """
+        Responds only to POST events and starts the build process
 
-    klass = options.get('class', GitHubEventHandler)
+        :arguments:
+            request
+                the http request object
+        """
 
-    handler = klass(options.get('secret', None),
-                    options.get('strict', False),
-                    options.get('codebase', None))
-    return handler.process(request)
+        klass = self.options.get('class', GitHubEventHandler)
+
+        handler = klass(self.options.get('secret', None),
+                        self.options.get('strict', False),
+                        self.options.get('codebase', None))
+        return handler.process(request)

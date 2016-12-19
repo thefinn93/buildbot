@@ -19,36 +19,38 @@ from dateutil.parser import parse as dateparse
 
 from twisted.python import log
 
+from buildbot.www.hooks import ChangeHook
 
-def getChanges(request, options=None):
-    """Catch a POST request from BitBucket and start a build process
 
-    Check the URL below if you require more information about payload
-    https://confluence.atlassian.com/display/BITBUCKET/POST+Service+Management
+class BitBucketChangeHook(ChangeHook):
+    def getChanges(self, request):
+        """Catch a POST request from BitBucket and start a build process
 
-    :param request: the http request Twisted object
-    :param options: additional options
-    """
+        Check the URL below if you require more information about payload
+        https://confluence.atlassian.com/display/BITBUCKET/POST+Service+Management
 
-    payload = json.loads(request.args['payload'][0])
-    repo_url = '%s%s' % (
-        payload['canon_url'], payload['repository']['absolute_url'])
-    project = request.args.get('project', [''])[0]
+        :param request: the http request Twisted object
+        """
 
-    changes = []
-    for commit in payload['commits']:
-        changes.append({
-            'author': commit['raw_author'],
-            'files': [f['file'] for f in commit['files']],
-            'comments': commit['message'],
-            'revision': commit['raw_node'],
-            'when_timestamp': dateparse(commit['utctimestamp']),
-            'branch': commit['branch'],
-            'revlink': '%scommits/%s' % (repo_url, commit['raw_node']),
-            'repository': repo_url,
-            'project': project
-        })
-        log.msg('New revision: %s' % (commit['node'],))
+        payload = json.loads(request.args['payload'][0])
+        repo_url = '%s%s' % (
+            payload['canon_url'], payload['repository']['absolute_url'])
+        project = request.args.get('project', [''])[0]
 
-    log.msg('Received %s changes from bitbucket' % (len(changes),))
-    return (changes, payload['repository']['scm'])
+        changes = []
+        for commit in payload['commits']:
+            changes.append({
+                'author': commit['raw_author'],
+                'files': [f['file'] for f in commit['files']],
+                'comments': commit['message'],
+                'revision': commit['raw_node'],
+                'when_timestamp': dateparse(commit['utctimestamp']),
+                'branch': commit['branch'],
+                'revlink': '%scommits/%s' % (repo_url, commit['raw_node']),
+                'repository': repo_url,
+                'project': project
+            })
+            log.msg('New revision: %s' % (commit['node'],))
+
+        log.msg('Received %s changes from bitbucket' % (len(changes),))
+        return (changes, payload['repository']['scm'])

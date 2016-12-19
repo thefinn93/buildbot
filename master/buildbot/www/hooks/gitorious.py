@@ -20,6 +20,8 @@ from dateutil.parser import parse as dateparse
 
 from twisted.python import log
 
+from buildbot.www.hooks import ChangeHook
+
 try:
     import json
     assert json
@@ -27,50 +29,50 @@ except ImportError:
     import simplejson as json
 
 
-def getChanges(request, options=None):
-    payload = json.loads(request.args['payload'][0])
-    user = payload['repository']['owner']['name']
-    repo = payload['repository']['name']
-    repo_url = payload['repository']['url']
-    project = payload['project']['name']
+class GitoriousChangeHook(ChangeHook):
+    def getChanges(self, request):
+        payload = json.loads(request.args['payload'][0])
+        user = payload['repository']['owner']['name']
+        repo = payload['repository']['name']
+        repo_url = payload['repository']['url']
+        project = payload['project']['name']
 
-    changes = process_change(payload, user, repo, repo_url, project)
-    log.msg("Received %s changes from gitorious" % len(changes))
-    return (changes, 'git')
+        changes = self.process_change(payload, user, repo, repo_url, project)
+        log.msg("Received %s changes from gitorious" % len(changes))
+        return (changes, 'git')
 
+    def process_change(self, payload, user, repo, repo_url, project):
+        changes = []
+        newrev = payload['after']
 
-def process_change(payload, user, repo, repo_url, project):
-    changes = []
-    newrev = payload['after']
+        branch = payload['ref']
+        if re.match(r"^0*$", newrev):
+            log.msg("Branch `%s' deleted, ignoring" % branch)
+            return []
+        else:
+            for commit in payload['commits']:
+                files = []
+                # Gitorious doesn't send these, maybe later
+                # if 'added' in commit:
+                #     files.extend(commit['added'])
+                # if 'modified' in commit:
+                #     files.extend(commit['modified'])
+                # if 'removed' in commit:
+                #     files.extend(commit['removed'])
+                when_timestamp = dateparse(commit['timestamp'])
 
-    branch = payload['ref']
-    if re.match(r"^0*$", newrev):
-        log.msg("Branch `%s' deleted, ignoring" % branch)
-        return []
-    else:
-        for commit in payload['commits']:
-            files = []
-            # Gitorious doesn't send these, maybe later
-            # if 'added' in commit:
-            #     files.extend(commit['added'])
-            # if 'modified' in commit:
-            #     files.extend(commit['modified'])
-            # if 'removed' in commit:
-            #     files.extend(commit['removed'])
-            when_timestamp = dateparse(commit['timestamp'])
+                log.msg("New revision: %s" % commit['id'][:8])
+                changes.append({
+                    'author': '%s <%s>' % (commit['author']['name'],
+                                           commit['author']['email']),
+                    'files': files,
+                    'comments': commit['message'],
+                    'revision': commit['id'],
+                    'when_timestamp': when_timestamp,
+                    'branch': branch,
+                    'revlink': commit['url'],
+                    'repository': repo_url,
+                    'project': project
+                })
 
-            log.msg("New revision: %s" % commit['id'][:8])
-            changes.append({
-                'author': '%s <%s>' % (commit['author']['name'],
-                                       commit['author']['email']),
-                'files': files,
-                'comments': commit['message'],
-                'revision': commit['id'],
-                'when_timestamp': when_timestamp,
-                'branch': branch,
-                'revlink': commit['url'],
-                'repository': repo_url,
-                'project': project
-            })
-
-    return changes
+        return changes

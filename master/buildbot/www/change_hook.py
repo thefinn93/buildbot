@@ -21,10 +21,21 @@ import re
 
 from twisted.internet import defer
 from twisted.python import log
-from twisted.python.reflect import namedModule
 from twisted.web import server
 
 from buildbot.www import resource
+from buildbot.www import hooks
+
+
+change_hook_backwards_compatibility = {
+    "base": hooks.BaseChangeHook,
+    "bitbucket": hooks.BitBucketChangeHook,
+    "github": hooks.GitHubChangeHook,
+    "gitlab": hooks.GitLabChangeHook,
+    "gitorious": hooks.GitoriousChangeHook,
+    "googlecode": hooks.GoogleCodeChangeHook,
+    "poller": hooks.PollerChangeHook
+}
 
 
 class ChangeHookResource(resource.Resource):
@@ -131,10 +142,15 @@ class ChangeHookResource(resource.Resource):
             dialect = 'base'
 
         if dialect in self.dialects:
-            log.msg("Attempting to load module buildbot.www.hooks." + dialect)
-            tempModule = namedModule('buildbot.www.hooks.' + dialect)
-            changes, src = tempModule.getChanges(
-                request, self.dialects[dialect])
+            if isinstance(self.dialects[dialect], hooks.ChangeHook):
+                log.msg("Using changehook %s" % (self.dialects[dialect].__class__.__name__))
+                tempModule = self.dialects[dialect]
+            elif dialect in change_hook_backwards_compatibility:
+                log.msg("Using old-style change hook configuration for %s change hook" % dialect)
+                tempModule = change_hook_backwards_compatibility[dialect](self.dialects[dialect])
+            else:
+                raise ValueError("Dialect %s was not given a changehook object and is not a known type.")
+            changes, src = tempModule.getChanges(request)
             log.msg("Got the following changes %s" % changes)
             self.request_dialect = dialect
         else:
