@@ -22,7 +22,7 @@ from twisted.trial import unittest
 import buildbot.www.change_hook as change_hook
 from buildbot.test.fake.web import FakeRequest
 from buildbot.test.fake.web import fakeMasterForHooks
-
+from buildbot.www.hooks import GitLabChangeHook
 
 # Sample GITHUB commit payload from http://help.github.com/post-receive-hooks/
 # Added "modfied" and "removed", and change email
@@ -70,7 +70,7 @@ class TestChangeHookConfiguredWithGitChange(unittest.TestCase):
 
     def setUp(self):
         self.changeHook = change_hook.ChangeHookResource(
-            dialects={'gitlab': True}, master=fakeMasterForHooks())
+            dialects={'gitlab': GitLabChangeHook()}, master=fakeMasterForHooks())
 
     def check_changes(self, r, project='', codebase=None):
         self.assertEqual(len(self.changeHook.master.addedChanges), 2)

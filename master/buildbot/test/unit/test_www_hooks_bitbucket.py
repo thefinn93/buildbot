@@ -21,6 +21,7 @@ from twisted.trial import unittest
 import buildbot.www.change_hook as change_hook
 from buildbot.test.fake.web import FakeRequest
 from buildbot.test.fake.web import fakeMasterForHooks
+from buildbot.www.hooks import BitBucketChangeHook
 
 
 gitJsonPayload = """{
@@ -141,7 +142,7 @@ class TestChangeHookConfiguredWithBitbucketChange(unittest.TestCase):
 
     def setUp(self):
         self.change_hook = change_hook.ChangeHookResource(
-            dialects={'bitbucket': True}, master=fakeMasterForHooks())
+            dialects={'bitbucket': BitBucketChangeHook()}, master=fakeMasterForHooks())
 
     @inlineCallbacks
     def testGitWithChange(self):

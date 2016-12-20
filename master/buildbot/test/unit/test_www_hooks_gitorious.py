@@ -19,6 +19,7 @@ from twisted.trial import unittest
 import buildbot.www.change_hook as change_hook
 from buildbot.test.fake.web import FakeRequest
 from buildbot.test.fake.web import fakeMasterForHooks
+from buildbot.www.hooks import GitoriousChangeHook
 
 
 # Sample Gitorious commit payload
@@ -63,7 +64,7 @@ gitJsonPayload = r"""
 class TestChangeHookConfiguredWithGitChange(unittest.TestCase):
 
     def setUp(self):
-        dialects = {'gitorious': True}
+        dialects = {'gitorious': GitoriousChangeHook()}
         self.changeHook = change_hook.ChangeHookResource(
             dialects=dialects, master=fakeMasterForHooks())
 

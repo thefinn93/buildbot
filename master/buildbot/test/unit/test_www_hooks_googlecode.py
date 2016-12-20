@@ -21,6 +21,7 @@ from twisted.trial import unittest
 import buildbot.www.change_hook as change_hook
 from buildbot.test.fake.web import FakeRequest
 from buildbot.test.fake.web import fakeMasterForHooks
+from buildbot.www.hooks import GoogleCodeChangeHook
 
 # Sample Google Code commit payload extracted from a Google Code test project
 # {
@@ -61,10 +62,10 @@ class TestChangeHookConfiguredWithGoogleCodeChange(unittest.TestCase):
         }
 
         self.changeHook = change_hook.ChangeHookResource(dialects={
-            'googlecode': {
+            'googlecode': GoogleCodeChangeHook({
                 'secret_key': 'FSP3p-Ghdn4T0oqX',
                 'branch': 'test'
-            }
+            })
         }, master=fakeMasterForHooks())
 
     # Test 'base' hook with attributes. We should get a json string representing

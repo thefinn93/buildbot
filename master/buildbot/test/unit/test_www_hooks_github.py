@@ -26,6 +26,7 @@ from buildbot.www.change_hook import ChangeHookResource
 from buildbot.www.hooks.github import _HEADER_CT
 from buildbot.www.hooks.github import _HEADER_EVENT
 from buildbot.www.hooks.github import _HEADER_SIGNATURE
+from buildbot.www.hooks import GitHubChangeHook
 
 # Sample GITHUB commit payload from http://help.github.com/post-receive-hooks/
 # Added "modfied" and "removed", and change email
@@ -268,7 +269,7 @@ _CT_JSON = 'application/json'
 
 def _prepare_github_change_hook(**params):
     return ChangeHookResource(dialects={
-        'github': params
+        'github': GitHubChangeHook(params)
     }, master=fakeMasterForHooks())
 
 

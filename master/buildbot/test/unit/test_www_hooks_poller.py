@@ -21,6 +21,7 @@ from buildbot import util
 from buildbot.changes import base
 from buildbot.changes.manager import ChangeManager
 from buildbot.test.fake.web import FakeRequest
+from buildbot.www.hooks import PollerChangeHook
 
 
 class TestPollingChangeHook(unittest.TestCase):
@@ -40,7 +41,7 @@ class TestPollingChangeHook(unittest.TestCase):
         master = self.request.site.master
 
         self.changeHook = change_hook.ChangeHookResource(
-            dialects={'poller': options}, master=master)
+            dialects={'poller': PollerChangeHook(options)}, master=master)
         master.change_svc = ChangeManager()
         master.change_svc.setServiceParent(master)
         self.changesrc = self.Subclass("example", 21)
