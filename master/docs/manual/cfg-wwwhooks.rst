@@ -6,20 +6,21 @@ Change Hooks
 
 The ``/change_hook`` url is a magic URL which will accept HTTP requests and translate them into changes for buildbot.
 Implementations (such as a trivial json-based endpoint and a GitHub implementation) can be found in :src:`master/buildbot/www/hooks`.
-The format of the url is :samp:`/change_hook/{DIALECT}` where DIALECT is a package within the hooks directory.
-Change_hook is disabled by default and each DIALECT has to be enabled separately, for security reasons
+The format of the url is :samp:`/change_hook/HOOKNAME` where HOOKNAME the name you gave the hook in the config, generally
+the same as the dialect.
 
 An example www configuration line which enables change_hook and two DIALECTS:
 
 .. code-block:: python
+    from buildbot.www import hooks
 
     c['www'] = dict(
         change_hook_dialects={
-                              'base': True,
-                              'somehook': {'option1':True,
-                                           'option2':False}}))
+                              'base': hooks.BaseChangeHook(),
+                              'somehook': hooks.SomeChangeHook({'option1':True, 'option2':False})
+                              }))
 
-Within the www config dictionary arguments, the ``change_hook`` key enables/disables the module and ``change_hook_dialects`` whitelists DIALECTs where the keys are the module names and the values are optional arguments which will be passed to the hooks.
+Within the www config dictionary arguments, the ``change_hook`` key enables/disables the module and ``change_hook_dialects`` enables dialects where the keys are the change hook name and the value is a ChangeHook object.
 
 The :file:`post_build_request.py` script in :file:`master/contrib` allows for the submission of an arbitrary change request.
 Run :command:`post_build_request.py --help` for more information.
@@ -33,10 +34,11 @@ Mercurial hook
 The Mercurial hook uses the base dialect:
 
 .. code-block:: python
+    from buildbot.www import hooks
 
     c['www'] = dict(
         ...,
-        change_hook_dialects={'base': True},
+        change_hook_dialects={'base': hooks.BaseChangeHook()},
     )
 
 Once this is configured on your buildmaster add the following hook on your server-side Mercurial repository's ``hgrc``:
@@ -87,9 +89,10 @@ The GitHub hook has the following parameters:
 The simples way to use GitHub hook is as follows:
 
 .. code-block:: python
+    from buildbot.www import hooks
 
     c['www'] = dict(...,
-        change_hook_dialects={'github': { }})
+        change_hook_dialects={'github': hooks.GitHubChangeHook({ })})
 
 Having added this line, you should add a webhook for your GitHub project (see `Creating Webhooks page at GitHub <https://developer.github.com/webhooks/creating/>`_).
 The parameters are:
@@ -107,14 +110,15 @@ The parameters are:
     If you provide a non-empty value (recommended), make sure that your hook is configured to use it:
 
     .. code-block:: python
+            from buildbot.www import hooks
 
             c['www'] = dict(
                 ...,
                 change_hook_dialects={
-                    'github': {
+                    'github': hooks.GitHubChangeHook({
                         'secret': 'MY-SECRET',
                         'strict': True
-                    }
+                    })
                 },
                 ...))
 
@@ -161,9 +165,10 @@ BitBucket hook
 The BitBucket hook is as simple as GitHub one and it also takes no options.
 
 .. code-block:: python
+    from buildbot.www import hooks
 
     c['www'] = dict(...,
-        change_hook_dialects={ 'bitbucket' : True }))
+        change_hook_dialects={ 'bitbucket' : hooks.BitBucketChangeHook() }))
 
 When this is setup you should add a `POST` service pointing to ``/change_hook/bitbucket`` relative to the root of the web status.
 For example, it the grid URL is ``http://builds.example.com/bbot/grid``, then point BitBucket to ``http://builds.example.com/change_hook/bitbucket``.
@@ -193,9 +198,10 @@ Google Code hook
 
 The Google Code hook is quite similar to the GitHub Hook.
 It has one option for the "Post-Commit Authentication Key" used to check if the request is legitimate::
+    from buildbot.www import hooks
 
     c['www'] = dict(...,
-        change_hook_dialects={'googlecode': {'secret_key': 'FSP3p-Ghdn4T0oqX'}}
+        change_hook_dialects={'googlecode': hooks.GoogleCodeChangeHook({'secret_key': 'FSP3p-Ghdn4T0oqX'})}
     )
 
 This will add a "Post-Commit URL" for the project in the Google Code administrative interface, pointing to ``/change_hook/googlecode`` relative to the root of the web status.
@@ -207,7 +213,7 @@ Alternatively, you can use the :ref:`GoogleCodeAtomPoller` :class:`ChangeSource`
    Google Code doesn't send the branch on which the changes were made.
    So, the hook always returns ``'default'`` as the branch, you can override it with the ``'branch'`` option::
 
-      change_hook_dialects={'googlecode': {'secret_key': 'FSP3p-Ghdn4T0oqX', 'branch': 'master'}}
+      change_hook_dialects={'googlecode': hooks.GoogleCodeChangeHook({'secret_key': 'FSP3p-Ghdn4T0oqX', 'branch': 'master'})}
 
 .. bb:chsrc:: Poller
 
@@ -227,8 +233,10 @@ Suppose you have a poller configured like this::
 
 And you configure your WebStatus to enable this hook::
 
+    from buildbot.www import hooks
+
     c['www'] = dict(...,
-        change_hook_dialects={'poller': True}
+        change_hook_dialects={'poller': hooks.PollerChangeHook()}
     )
 
 Then you will be able to trigger a poll of the SVN repository by poking the ``/change_hook/poller`` URL from a commit hook like this:
@@ -242,8 +250,10 @@ If no ``poller`` argument is provided then the hook will trigger polling of all 
 
 You can restrict which pollers the webhook has access to using the ``allowed`` option::
 
+    from buildbot.www import hooks
+
     c['www'] = dict(...,
-        change_hook_dialects={'poller': {'allowed': ['https://amanda.svn.sourceforge.net/svnroot/amanda/amanda']}}
+        change_hook_dialects={'poller': hooks.PollerChangeHook({'allowed': ['https://amanda.svn.sourceforge.net/svnroot/amanda/amanda']})}
     )
 
 .. bb:chsrc:: GitLab
@@ -254,9 +264,10 @@ GitLab hook
 The GitLab hook is as simple as GitHub one and it also takes no options.
 
 ::
+    from buildbot.www import hooks
 
     c['www'] = dict(...,
-        change_hook_dialects={ 'gitlab' : True }
+        change_hook_dialects={ 'gitlab' : hooks.GitLabChangeHook() }
     )
 
 When this is setup you should add a `POST` service pointing to ``/change_hook/gitlab`` relative to the root of the web status.
@@ -293,9 +304,11 @@ Gitorious Hook
 The Gitorious hook is as simple as GitHub one and it also takes no options.
 
 ::
+    from buildbot.www import hooks
+
 
     c['www'] = dict(...,
-        change_hook_dialects={'gitorious': True}
+        change_hook_dialects={'gitorious': hooks.GitoriousChangeHook()}
     )
 
 When this is setup you should add a `POST` service pointing to ``/change_hook/gitorious`` relative to the root of the web status.
