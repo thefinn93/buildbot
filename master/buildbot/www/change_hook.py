@@ -23,9 +23,8 @@ from twisted.internet import defer
 from twisted.python import log
 from twisted.web import server
 
-from buildbot.www import resource
 from buildbot.www import hooks
-
+from buildbot.www import resource
 
 change_hook_backwards_compatibility = {
     "base": hooks.BaseChangeHook,
